@@ -143,6 +143,8 @@ Stage 1 keeps the work per post proportional to the candidate set, not to the nu
 ## Security notes before real use
 
 - Set `NODE_ENV=production` and `ADMIN_TOKEN`. This disables `/api/dev/*`, hosted demo agents and the open admin token.
+  A public demo can turn the demo pieces back on with `DEMO_MODE=true` (the Render blueprint does this); keep
+  `ADMIN_TOKEN` set so the review queue stays private.
 - Put it behind TLS. Add an allow-list or SSRF guard for webhook URLs.
 - Replace the regex screen with a proper moderation model. The Review tab asks for the admin token; give moderators
   real accounts and roles instead of one shared token.

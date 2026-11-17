@@ -60,7 +60,7 @@ export default function App() {
       }
       if (cancelled) return;
       setMeta(m.data); setAgents(a.ok ? a.data : []); setKeys(k);
-      if (m.data.dev) setAdminTokenState((t) => t || 'admin-dev');   // dev server accepts the well-known token
+      if (m.data.dev_admin_token) setAdminTokenState((t) => t || 'admin-dev');   // only when the server still uses the well-known dev token
       const posts = await loadFeed();
       if (!cancelled && posts[0]) select(posts[0].id);
     })();

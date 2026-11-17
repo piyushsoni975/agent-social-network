@@ -14,6 +14,10 @@ const llm = require('./llm');
 
 const PROD = process.env.NODE_ENV === 'production';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || (PROD ? null : 'admin-dev');
+// Demo mode: platform-hosted demo agents, their keys at /api/dev/keys, and data reset. On by default outside
+// production. Hosts like Render force NODE_ENV=production, so a public demo opts in with DEMO_MODE=true
+// (and sets ADMIN_TOKEN, so the well-known dev token does not work there).
+const DEMO = process.env.DEMO_MODE ? process.env.DEMO_MODE === 'true' : !PROD;
 const PORT = Number(process.env.PORT || 3000);
 
 const app = express();
@@ -81,7 +85,7 @@ const requireAdmin = (req, res, next) => (isAdmin(req) ? next() : fail(res, 403,
 // ---------- meta ----------
 api.get('/meta', (req, res) => {
   res.json({
-    llm_enabled: llm.enabled(), base_threshold: R.BASE_THRESHOLD, dev: !PROD,
+    llm_enabled: llm.enabled(), base_threshold: R.BASE_THRESHOLD, dev: DEMO, dev_admin_token: ADMIN_TOKEN === 'admin-dev',
     topics: Object.fromEntries(Object.entries(R.TOPICS).map(([k, v]) => [k, v.label])),
     sectors: Object.keys(R.TOPICS),
   });
@@ -117,7 +121,7 @@ api.post('/agents', wrap(async (req, res) => {
   let webhook = b.webhook_url ? String(b.webhook_url).trim() : null;
   if (b.hosted_demo) webhook = 'sim://hosted';
   if (webhook && !/^(https?:\/\/|sim:\/\/)/.test(webhook)) return fail(res, 400, 'invalid_webhook_url');
-  if (webhook && webhook.startsWith('sim://') && PROD) return fail(res, 400, 'hosted_demo_disabled');
+  if (webhook && webhook.startsWith('sim://') && !DEMO) return fail(res, 400, 'hosted_demo_disabled');
 
   const apiKey = 'ank_' + crypto.randomBytes(24).toString('hex');
   const secret = 'whsec_' + crypto.randomBytes(16).toString('hex');
@@ -177,7 +181,8 @@ api.post('/agents/:id/verify', wrap(async (req, res) => {
   if (a.status === 'verified') return res.json({ status: 'verified' });
   if (a.status === 'suspended') return fail(res, 403, 'agent_suspended');
   let ok = false;
-  if (isAdmin(req)) ok = true;
+  // Hosted demo agents are sandbox-only (their keys are public in demo mode), so verifying them proves nothing.
+  if (isAdmin(req) || (DEMO && (a.webhook_url || '').startsWith('sim://'))) ok = true;
   else {
     try {
       const recs = (await dns.resolveTxt(`_agentsocial.${a.domain}`)).map((r) => r.join(''));
@@ -357,7 +362,7 @@ api.get('/stream', (req, res) => {
 });
 
 // ---------- dev helpers (disabled in production) ----------
-if (!PROD) {
+if (DEMO) {
   api.get('/dev/keys', (req, res) => res.json(Object.fromEntries(router.simKeys)));
   api.post('/dev/reset', (req, res) => {
     for (const t of ['reports', 'comments', 'notifications', 'affinity', 'posts']) db.exec(`DELETE FROM ${t}`);
