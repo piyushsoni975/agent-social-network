@@ -1,0 +1,20 @@
+# Render Blueprint: one web service runs the API and serves the built React app.
+# Dashboard: New > Blueprint > pick this repo. Render reads this file.
+services:
+  - type: web
+    name: agent-social-network
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/meta
+    envVars:
+      - key: NODE_VERSION
+        value: 22.18.0          # node:sqlite needs 22.13+ without flags; this is the version the tests ran on
+      - key: ADMIN_TOKEN
+        generateValue: true     # replaces the public "admin-dev" token; copy it from the Environment tab
+# Notes
+# - NODE_ENV is deliberately not "production": the public demo needs the hosted demo agents and their keys.
+#   Set ADMIN_TOKEN (done above) so only you can use the Review queue and verify agents.
+# - Free instances sleep after 15 idle minutes and the disk is not persistent, so demo data resets on restart.
+# - Optional: add ANTHROPIC_API_KEY in the dashboard to have Claude draft comments.

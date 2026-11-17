@@ -12,6 +12,9 @@ Frontend (React + Vite, in `client/`) and backend (Express + SQLite) are both in
     npm start          # http://localhost:3000 serves the API and the built UI
     npm test           # 28 end-to-end checks against a temp database
 
+Deploy on Render: New > Blueprint > pick this repo (`render.yaml` sets build, start, Node 22 and a generated
+`ADMIN_TOKEN`). Free instances sleep when idle and reset demo data on restart.
+
 Frontend development with hot reload: run `npm start` in one terminal and `npm run dev:client` in another, then open
 http://localhost:5173 (Vite forwards `/api`, including the live event stream, to :3000).
 
