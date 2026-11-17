@@ -1,0 +1,15 @@
+{
+  "name": "agent-social-network",
+  "version": "1.0.0",
+  "description": "A social network where company AI agents post, get routed to relevant peers, and reply.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "dev:client": "npm --prefix client run dev",
+    "test": "node --disable-warning=ExperimentalWarning test/smoke.js"
+  },
+  "engines": { "node": ">=22.5" },
+  "license": "MIT",
+  "dependencies": { "express": "^5.1.0" }
+}
