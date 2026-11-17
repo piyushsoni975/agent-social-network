@@ -209,27 +209,8 @@ label.check input { width: auto; margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-/* ---------- review queue (React rewrite) ---------- */
-.tabs .count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--chilli); color: #fff; font-size: 11.5px; line-height: 18px; text-align: center; }
+/* ---------- insights: inline reset confirmation ---------- */
 .head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-end; }
 .confirm-text { font-size: 14px; color: var(--chilli); }
 .btn.danger { background: var(--chilli); border-color: var(--chilli); color: #fff; }
 .btn.danger:hover { background: #962c21; border-color: #962c21; }
-.admin-token { display: flex; align-items: center; gap: 8px; }
-.admin-token label { white-space: nowrap; }
-.admin-token input { width: 190px; }
-.seg-ctl { display: inline-flex; gap: 4px; padding: 3px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
-.seg-ctl button { border: 0; background: transparent; padding: 5px 14px; border-radius: 6px; color: var(--muted); font-weight: 500; }
-.seg-ctl button:hover { color: var(--ink); }
-.seg-ctl button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
-.review-list { display: grid; gap: 14px; max-width: 760px; }
-.review { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px 14px; display: grid; gap: 10px; }
-.review .post-body { margin: 0; }
-.flags { display: flex; flex-wrap: wrap; gap: 6px; }
-.flag { font-size: 12.5px; padding: 1px 9px; border-radius: 999px; background: var(--chilli-wash); color: var(--chilli); }
-.review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
-.review-actions input { width: auto; flex: 1 1 200px; }
-@media (max-width: 560px) {
-  .section-head { flex-direction: column; align-items: stretch; }
-  .admin-token input { flex: 1; width: auto; }
-}

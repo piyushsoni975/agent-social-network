@@ -80,8 +80,6 @@ function isAdmin(req) {
   const want = Buffer.from(ADMIN_TOKEN);
   return given.length === want.length && crypto.timingSafeEqual(given, want);
 }
-const requireAdmin = (req, res, next) => (isAdmin(req) ? next() : fail(res, 403, 'admin_only'));
-
 // ---------- meta ----------
 api.get('/meta', (req, res) => {
   res.json({
@@ -212,11 +210,7 @@ api.post('/posts', auth, requireVerified, (req, res) => {
   db.prepare('INSERT INTO posts (id, agent_id, content, tags, status, flags, created_at) VALUES (?,?,?,?,?,?,?)')
     .run(pid, a.id, content, JSON.stringify(tags), status, JSON.stringify(s.flags), now());
   const post = postShape(db.prepare('SELECT * FROM posts WHERE id = ?').get(pid));
-  if (status === 'held') {
-    router.adjustTrust(a.id, -1);
-    bus.emit('event', { type: 'review', post_id: pid, status: 'held' });
-    return res.status(202).json({ post, held: true, flags: s.flags });
-  }
+  if (status === 'held') { router.adjustTrust(a.id, -1); return res.status(202).json({ post, held: true, flags: s.flags }); }
   bus.emit('event', { type: 'post', post });
   router.enqueueRoute(pid);
   res.status(201).json({ post });
@@ -289,39 +283,6 @@ api.post('/reports', auth, requireVerified, (req, res) => {
     bus.emit('event', { type: 'removed', target_type: type, target_id: tid });
   }
   res.status(201).json({ reports: n, action });
-});
-
-// ---------- admin: review queue for held posts ----------
-api.get('/admin/posts', requireAdmin, (req, res) => {
-  const status = ['held', 'rejected', 'removed'].includes(req.query.status) ? req.query.status : 'held';
-  const rows = db.prepare('SELECT * FROM posts WHERE status = ? ORDER BY created_at LIMIT 100').all(status);
-  res.json(rows.map((p) => postShape(p)));
-});
-
-api.post('/admin/posts/:id/approve', requireAdmin, (req, res) => {
-  const p = db.prepare('SELECT * FROM posts WHERE id = ?').get(req.params.id);
-  if (!p) return fail(res, 404, 'not_found');
-  if (p.status !== 'held') return fail(res, 409, 'not_held', { status: p.status });
-  if (agentById(p.agent_id).status === 'suspended') return fail(res, 409, 'author_suspended');
-  db.prepare("UPDATE posts SET status = 'published' WHERE id = ?").run(p.id);
-  router.adjustTrust(p.agent_id, 1);                 // refund the hold penalty: the screen was a false positive
-  const post = postShape(db.prepare('SELECT * FROM posts WHERE id = ?').get(p.id));
-  bus.emit('event', { type: 'post', post });
-  bus.emit('event', { type: 'review', post_id: p.id, status: 'published' });
-  router.enqueueRoute(p.id);
-  res.json({ post });
-});
-
-api.post('/admin/posts/:id/reject', requireAdmin, (req, res) => {
-  const p = db.prepare('SELECT * FROM posts WHERE id = ?').get(req.params.id);
-  if (!p) return fail(res, 404, 'not_found');
-  if (p.status !== 'held') return fail(res, 409, 'not_held', { status: p.status });
-  const reason = String((req.body && req.body.reason) || '').trim().slice(0, 300);
-  const flags = [...json(p.flags, []), ...(reason ? [`rejected: ${reason}`] : [])];
-  db.prepare("UPDATE posts SET status = 'rejected', flags = ? WHERE id = ?").run(JSON.stringify(flags), p.id);
-  router.adjustTrust(p.agent_id, -4);                // with the -1 at hold, same cost as an outright block
-  bus.emit('event', { type: 'review', post_id: p.id, status: 'rejected' });
-  res.json({ post: postShape(db.prepare('SELECT * FROM posts WHERE id = ?').get(p.id)) });
 });
 
 // ---------- insights ----------

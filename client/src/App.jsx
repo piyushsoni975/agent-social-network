@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, loadAdminToken, loadStoredKeys, storeAdminToken, storeKey } from './api.js';
+import { api, loadStoredKeys, storeKey } from './api.js';
 import { AppContext } from './AppContext.js';
 import { useFeed, useStream } from './hooks.js';
 import Feed from './pages/Feed.jsx';
 import Agents from './pages/Agents.jsx';
 import Insights from './pages/Insights.jsx';
-import Review from './pages/Review.jsx';
 
-const TABS = [['feed', 'Feed'], ['agents', 'Agents'], ['insights', 'Insights'], ['review', 'Review']];
+const TABS = [['feed', 'Feed'], ['agents', 'Agents'], ['insights', 'Insights']];
 const LIVE_TEXT = { connecting: 'connecting', on: 'live', off: 'reconnecting' };
 
 export default function App() {
@@ -17,9 +16,6 @@ export default function App() {
   const [keys, setKeys] = useState({});
   const [tab, setTab] = useState('feed');
   const [live, setLive] = useState('connecting');
-  const [adminToken, setAdminTokenState] = useState(loadAdminToken);
-  const [reviewVersion, setReviewVersion] = useState(0);
-  const [heldCount, setHeldCount] = useState(null);
   const [toastState, setToastState] = useState({ msg: '', err: false, show: false });
   const feed = useFeed();
 
@@ -42,8 +38,8 @@ export default function App() {
   }, []);
 
   const addKey = useCallback((id, key) => { storeKey(id, key); setKeys((k) => ({ ...k, [id]: key })); }, []);
-  const setAdminToken = useCallback((t) => { storeAdminToken(t); setAdminTokenState(t); }, []);
-  const reviewChanged = useCallback(() => setReviewVersion((v) => v + 1), []);
+  // Local dev servers accept the well-known admin token for the "Verify (demo)" shortcut.
+  const adminToken = meta?.dev_admin_token ? 'admin-dev' : '';
 
   // ---------- boot ----------
   const { loadFeed, select } = feed;
@@ -60,21 +56,11 @@ export default function App() {
       }
       if (cancelled) return;
       setMeta(m.data); setAgents(a.ok ? a.data : []); setKeys(k);
-      if (m.data.dev_admin_token) setAdminTokenState((t) => t || 'admin-dev');   // only when the server still uses the well-known dev token
       const posts = await loadFeed();
       if (!cancelled && posts[0]) select(posts[0].id);
     })();
     return () => { cancelled = true; };
   }, [loadFeed, select]);
-
-  // Held-post count for the Review tab badge.
-  useEffect(() => {
-    if (!adminToken) { setHeldCount(null); return; }
-    let cancelled = false;
-    api('/admin/posts?status=held', { headers: { 'x-admin-token': adminToken } })
-      .then((r) => { if (!cancelled) setHeldCount(r.ok ? r.data.length : null); });
-    return () => { cancelled = true; };
-  }, [adminToken, reviewVersion]);
 
   // ---------- live updates ----------
   useStream((e) => {
@@ -84,13 +70,12 @@ export default function App() {
     else if (e.type === 'notification') feed.refreshPost(e.post_id);
     else if (e.type === 'agent' || e.type === 'trust') loadAgents();
     else if (e.type === 'removed') feed.loadFeed();
-    else if (e.type === 'review') reviewChanged();
   }, setLive);
 
   const ctx = useMemo(() => ({
-    meta, agents, keys, adminToken, toast, loadAgents, addKey, setAdminToken,
+    meta, agents, keys, adminToken, toast, loadAgents, addKey,
     label: (t) => (meta && meta.topics[t]) || t,
-  }), [meta, agents, keys, adminToken, toast, loadAgents, addKey, setAdminToken]);
+  }), [meta, agents, keys, adminToken, toast, loadAgents, addKey]);
 
   return (
     <AppContext.Provider value={ctx}>
@@ -101,10 +86,7 @@ export default function App() {
         </div>
         <nav className="tabs" role="tablist" aria-label="Sections">
           {TABS.map(([id, name]) => (
-            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
-              {name}
-              {id === 'review' && heldCount > 0 && <span className="count" aria-label={`${heldCount} held`}>{heldCount}</span>}
-            </button>
+            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{name}</button>
           ))}
         </nav>
         <div className={`status ${live}`} title="Live updates"><i /><span>{LIVE_TEXT[live]}</span></div>
@@ -115,8 +97,7 @@ export default function App() {
         {!meta && !bootError && <div className="empty"><b>Loading</b>Connecting to the server.</div>}
         {meta && tab === 'feed' && <Feed feed={feed} />}
         {meta && tab === 'agents' && <Agents />}
-        {meta && tab === 'insights' && <Insights onReset={() => { feed.reset(); loadAgents(); reviewChanged(); }} />}
-        {meta && tab === 'review' && <Review version={reviewVersion} onChanged={reviewChanged} />}
+        {meta && tab === 'insights' && <Insights onReset={() => { feed.reset(); loadAgents(); }} />}
       </main>
 
       <div className={`toast${toastState.show ? ' show' : ''}${toastState.err ? ' err' : ''}`} role="status" aria-live="polite">{toastState.msg}</div>

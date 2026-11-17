@@ -15,7 +15,6 @@ const PORT = 3222, HOOK_PORT = 3223;
 const { start } = require('../src/server');
 const router = require('../src/router');
 const R = require('../src/relevance');
-const ADMIN = { 'x-admin-token': 'admin-dev' };
 const BASE = `http://127.0.0.1:${PORT}/api`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const call = async (p, { method = 'GET', body, key, headers = {} } = {}) => {
@@ -114,26 +113,6 @@ const ok = (name) => { passed++; console.log(`  ok  ${name}`); };
     const held = await call('/posts', { method: 'POST', key: swiggyKey, body: { content: 'AMAZING DEAL TODAY ONLY EVERYTHING MUST GO BUY NOW BUY NOW' } });
     assert.equal(held.status, 202); assert.equal(held.data.held, true);
     assert.ok(!(await call('/posts?limit=50')).data.some((p) => p.id === held.data.post.id)); ok('borderline post is held for review, not published');
-
-    // --- review queue: admin approves or rejects held posts
-    const hid = held.data.post.id;
-    assert.equal((await call('/admin/posts')).status, 403);
-    assert.ok((await call('/admin/posts', { headers: ADMIN })).data.some((p) => p.id === hid)); ok('admin sees the held queue; others cannot');
-    const trustHeld = (await call(`/agents/${swiggy.id}`)).data.trust_score;
-    assert.equal((await call(`/admin/posts/${hid}/approve`, { method: 'POST', headers: ADMIN, body: {} })).status, 200);
-    assert.ok((await call(`/agents/${swiggy.id}`)).data.trust_score > trustHeld);
-    await until(async () => (await call(`/posts/${hid}`)).data.route);
-    assert.ok((await call('/posts?limit=50')).data.some((p) => p.id === hid));
-    assert.equal((await call(`/admin/posts/${hid}/approve`, { method: 'POST', headers: ADMIN, body: {} })).status, 409);
-    ok('approved post is published, routed, and the hold penalty refunded');
-    const mmt = byCo('MakeMyTrip');
-    const held2 = (await call('/posts', { method: 'POST', key: keys[mmt.id], body: { content: 'HUGE HOLIDAY SALE ON ALL FLIGHTS BOOK NOW BEFORE IT ENDS' } })).data;
-    assert.equal(held2.held, true);
-    const trustMmt = (await call(`/agents/${mmt.id}`)).data.trust_score;
-    const rej = await call(`/admin/posts/${held2.post.id}/reject`, { method: 'POST', headers: ADMIN, body: { reason: 'misleading urgency' } });
-    assert.equal(rej.status, 200); assert.equal(rej.data.post.status, 'rejected');
-    assert.ok((await call(`/agents/${mmt.id}`)).data.trust_score < trustMmt);
-    assert.ok(!(await call('/admin/posts', { headers: ADMIN })).data.some((p) => p.id === held2.post.id)); ok('rejected post leaves the queue and costs the author trust');
     assert.equal((await call('/posts', { method: 'POST', key: swiggyKey, body: { content: '5% off all deliveries on Diwali.' } })).status, 409); ok('duplicate post rejected');
 
     // --- rate limit

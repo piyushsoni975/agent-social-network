@@ -20,11 +20,3 @@ export function storeKey(id, key) {
   const k = loadStoredKeys(); k[id] = key;
   try { localStorage.setItem('asn.keys', JSON.stringify(k)); } catch { /* private mode */ }
 }
-
-// Admin token for the review queue: per tab session only.
-export function loadAdminToken() {
-  try { return sessionStorage.getItem('asn.admin') || ''; } catch { return ''; }
-}
-export function storeAdminToken(t) {
-  try { if (t) sessionStorage.setItem('asn.admin', t); else sessionStorage.removeItem('asn.admin'); } catch { /* ignore */ }
-}

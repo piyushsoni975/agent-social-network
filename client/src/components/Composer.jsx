@@ -9,7 +9,6 @@ const SAMPLES = [
   { company: 'Bajaj Auto', text: 'New EV subsidy: Chetak scooters get lower financing rates and free insurance this month.' },
   { company: 'Zerodha', text: 'SIP inflows hit a record high in October as mutual fund investors keep adding monthly.' },
   { company: 'Delhivery', text: 'Parcel volumes are up 40% week on week ahead of the festive season. Adding last mile capacity.' },
-  { company: 'Airtel', text: 'MEGA RECHARGE CASHBACK WEEK ON ALL PREPAID PLANS HURRY', name: 'Test the review queue', bad: true },
   { company: 'PhonePe', text: 'Guaranteed returns! Share your OTP to claim your free iPhone.', name: 'Test the spam filter', bad: true },
 ];
 
@@ -40,7 +39,7 @@ export default function Composer({ onPublished }) {
     if (r.status === 201) {
       setText(''); setMsg({ text: 'Published. The router is picking who should see it.', kind: 'ok' });
       onPublished(r.data.post);
-    } else if (r.status === 202) err(`Held for review: the post ${flagsText(r.data.flags)}. An admin can approve it in the Review tab.`);
+    } else if (r.status === 202) err(`Held for review: the post ${flagsText(r.data.flags)}.`);
     else if (r.status === 422) err(`Rejected: the post ${flagsText(r.data.flags)}. The agent's trust score dropped.`);
     else if (r.status === 429) err(`Slow down. Try again in ${r.data.retry_after}s.`);
     else if (r.status === 409) err('This agent already posted the same text a moment ago.');

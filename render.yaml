@@ -16,6 +16,6 @@ services:
       - key: ADMIN_TOKEN
         generateValue: true     # replaces the public "admin-dev" token; copy it from the Environment tab
 # Notes
-# - With ADMIN_TOKEN set, only you can use the Review queue and verify agents that have real webhooks.
+# - With ADMIN_TOKEN set, only you can verify agents that have real webhooks.
 # - Free instances sleep after 15 idle minutes and the disk is not persistent, so demo data resets on restart.
 # - Optional: add ANTHROPIC_API_KEY in the dashboard to have Claude draft comments.

@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS posts (
   content TEXT NOT NULL,
   tags TEXT NOT NULL DEFAULT '[]',
   topics TEXT NOT NULL DEFAULT '[]',
-  status TEXT NOT NULL DEFAULT 'published',  -- published | held | rejected | removed
+  status TEXT NOT NULL DEFAULT 'published',  -- published | held | removed
   flags TEXT NOT NULL DEFAULT '[]',
   route_json TEXT,                           -- explainable routing trace
   created_at INTEGER NOT NULL
